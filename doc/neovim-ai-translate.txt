@@ -1,0 +1,106 @@
+*neovim-ai-translate.txt*  Neovim AI Translate - A Neovim plugin for translation using OpenAI API
+
+==============================================================================
+INTRODUCTION                                             *neovim-ai-translate-intro*
+
+Neovim AI Translate is a Neovim plugin that allows you to translate selected text
+using OpenAI's language models. It supports multiple display modes for the
+translation results and allows customization of various translation parameters.
+
+==============================================================================
+INSTALLATION                                         *neovim-ai-translate-installation*
+
+1. Ensure you have Neovim 0.7 or later installed.
+2. Install using your favorite package manager:
+
+- Using Packer:
+  use {
+    'quintin-lee/neovim-ai-translate',
+    requires = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require('neovim-ai-translate').setup({
+        -- configuration here
+        openai_api_key = 'your-api-key', -- or set OPENAI_API_KEY environment variable
+        openai_base_url = 'https://api.openai.com/v1', -- or set OPENAI_BASE_URL environment variable
+        model = 'gpt-3.5-turbo', -- or set MODE_NAME environment variable
+        -- default_target_lang = 'en',
+        -- display_mode = 'float_win',
+      })
+    end
+  }
+
+- Using Plug:
+  Plug 'nvim-lua/plenary.nvim'
+  Plug 'quintin-lee/neovim-ai-translate'
+
+  Then configure in your init.vim or init.lua:
+  require('neovim-ai-translate').setup({ ... })
+
+==============================================================================
+CONFIGURATION                                         *neovim-ai-translate-configuration*
+
+The following configuration options are available, with environment variable
+fallbacks where noted:
+
+- openai_api_key: Your OpenAI API key (required)
+  Environment variable fallback: OPENAI_API_KEY
+
+- openai_base_url: Base URL for the OpenAI API (default: "https://api.openai.com/v1")
+  Environment variable fallback: OPENAI_BASE_URL
+  Useful for custom endpoints or proxy services
+
+- model: The OpenAI model to use (default: "gpt-3.5-turbo")
+  Environment variable fallback: MODE_NAME
+  Examples: "gpt-4", "gpt-3.5-turbo", "text-davinci-003"
+
+- default_source_lang: Default source language (default: "auto")
+- default_target_lang: Default target language (default: "zh-CN")
+- max_tokens: Maximum tokens for the response (default: 1024)
+- temperature: Controls randomness (default: 0.3)
+- timeout: Request timeout in milliseconds (default: 5000)
+- display_mode: How to display results: "float_win", "current_line", or "new_buffer" (default: "float_win")
+- float_win: Configuration for floating window display
+
+Example configuration with custom parameters:
+require('neovim-ai-translate').setup({
+  openai_api_key = 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  openai_base_url = 'https://api.openai.com/v1',
+  model = 'gpt-4',
+  default_target_lang = 'en',
+  display_mode = 'float_win',
+  float_win = {
+    border = 'single',
+    width = 100,
+    height = 25,
+  }
+})
+
+Environment variables can be set in your shell configuration:
+export OPENAI_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+export MODE_NAME="gpt-3.5-turbo"
+
+==============================================================================
+USAGE                                                       *neovim-ai-translate-usage*
+
+1. Visual mode translation:
+   - Select text in visual mode
+   - Press <leader>t to translate using default languages
+   - Press <leader>te to translate to English
+   - Press <leader>tc to translate to Chinese
+
+2. Command mode:
+   - :Translate [source_lang] [target_lang]
+   - Example: :Translate en zh-CN (translates from English to Chinese)
+   - Example: :Translate auto fr (translates from auto-detected language to French)
+
+3. Close floating window:
+   - Press 'q' when cursor is in the floating window
+
+==============================================================================
+LICENSE                                                   *neovim-ai-translate-license*
+
+MIT License
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:
