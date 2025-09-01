@@ -1,10 +1,10 @@
-local config = require("neovim-ai-translate").get_config()
+-- Only require config when needed, not at the top level
 local json = require("plenary.json")
-local curl = require("plenary.curl")  -- 使用plenary.curl替代plenary.http
+local curl = require("plenary.curl")
 
 local M = {}
 
--- 获取视觉模式下选中的文本
+-- Get selected text in visual mode
 local function get_visual_selection()
   local start_pos = vim.api.nvim_buf_get_mark(0, '<')
   local end_pos = vim.api.nvim_buf_get_mark(0, '>')
@@ -18,8 +18,10 @@ local function get_visual_selection()
   return table.concat(lines, "\n")
 end
 
--- 向OpenAI API发送请求
+-- Send request to OpenAI API
 local function request_openai(text, source_lang, target_lang, callback)
+  -- Get config here to avoid circular dependency
+  local config = require("neovim-ai-translate").get_config()
   local url = config.openai_base_url .. "/chat/completions"
   
   local messages = {
@@ -49,7 +51,6 @@ local function request_openai(text, source_lang, target_lang, callback)
     ["Authorization"] = "Bearer " .. config.openai_api_key
   }
   
-  -- 使用plenary.curl.post替代plenary.http.post
   curl.post(url, {
     body = json.encode(body),
     headers = headers,
@@ -70,8 +71,10 @@ local function request_openai(text, source_lang, target_lang, callback)
   })
 end
 
--- 根据配置的模式显示翻译结果
+-- Display translation based on config
 local function display_translation(result)
+  local config = require("neovim-ai-translate").get_config()
+  
   if config.display_mode == "float_win" then
     M.display_float_win(result)
   elseif config.display_mode == "current_line" then
@@ -80,12 +83,13 @@ local function display_translation(result)
     M.display_new_buffer(result)
   else
     vim.notify("Unknown display mode: " .. config.display_mode, vim.log.levels.WARN)
-    M.display_float_win(result) --  fallback
+    M.display_float_win(result) -- Fallback
   end
 end
 
--- 在浮动窗口中显示
+-- Display in floating window
 function M.display_float_win(content)
+  local config = require("neovim-ai-translate").get_config()
   local width = config.float_win.width or 100
   local height = config.float_win.height or 25
   
@@ -104,19 +108,19 @@ function M.display_float_win(content)
   
   local win = vim.api.nvim_open_win(buf, true, win_opts)
   
-  -- 按'q'关闭窗口
+  -- Close window with 'q'
   vim.api.nvim_buf_set_keymap(buf, "n", "q", "<CMD>close<CR>", { noremap = true, silent = true })
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
 end
 
--- 在当前行后显示
+-- Display after current line
 function M.display_current_line(content)
   local line = vim.api.nvim_win_get_cursor(0)[1]
   vim.api.nvim_buf_set_lines(0, line, line, false, { "", "-- Translation --", "" })
   vim.api.nvim_buf_set_lines(0, line + 3, line + 3, false, vim.split(content, "\n"))
 end
 
--- 在新缓冲区中显示
+-- Display in new buffer
 function M.display_new_buffer(content)
   vim.cmd("new Translation")
   vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(content, "\n"))
@@ -124,7 +128,7 @@ function M.display_new_buffer(content)
   vim.api.nvim_buf_set_option(0, "filetype", "markdown")
 end
 
--- 主要翻译函数
+-- Main translation function
 function M.translate(opts)
   local text = opts.text or get_visual_selection()
   if not text or text == "" then
@@ -132,6 +136,7 @@ function M.translate(opts)
     return
   end
   
+  local config = require("neovim-ai-translate").get_config()
   local source_lang = opts.source_lang or config.default_source_lang
   local target_lang = opts.target_lang or config.default_target_lang
   
@@ -144,7 +149,7 @@ function M.translate(opts)
   end)
 end
 
--- 视觉模式翻译的包装函数
+-- Wrapper for visual mode translation
 function M.translate_visual(source_lang, target_lang)
   M.translate({
     source_lang = source_lang,
