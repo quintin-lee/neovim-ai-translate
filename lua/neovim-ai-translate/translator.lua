@@ -1,10 +1,11 @@
 -- Only require config when needed, not at the top level
-local json = require("plenary.json")
+local config = require("neovim-ai-translate").get_config()
 local curl = require("plenary.curl")
+local json = vim.json
 
 local M = {}
 
--- Get selected text in visual mode
+-- 获取视觉模式下选中的文本
 local function get_visual_selection()
   local start_pos = vim.api.nvim_buf_get_mark(0, '<')
   local end_pos = vim.api.nvim_buf_get_mark(0, '>')
@@ -18,11 +19,11 @@ local function get_visual_selection()
   return table.concat(lines, "\n")
 end
 
--- Send request to OpenAI API
+-- 向OpenAI API发送请求
 local function request_openai(text, source_lang, target_lang, callback)
-  -- Get config here to avoid circular dependency
-  local config = require("neovim-ai-translate").get_config()
-  local url = config.openai_base_url .. "/chat/completions"
+  -- 确保基础URL存在
+  local base_url = config.openai_base_url or "https://api.openai.com/v1"
+  local url = base_url .. "/chat/completions"
   
   local messages = {
     {
@@ -30,7 +31,7 @@ local function request_openai(text, source_lang, target_lang, callback)
       content = string.format(
         "You are a translator. Translate the following text from %s to %s. " ..
         "Only return the translated text without any additional explanation.",
-        source_lang, target_lang
+        source_lang or "auto", target_lang or "en"
       )
     },
     {
@@ -40,28 +41,48 @@ local function request_openai(text, source_lang, target_lang, callback)
   }
   
   local body = {
-    model = config.model,
+    model = config.model or "gpt-3.5-turbo",
     messages = messages,
-    max_tokens = config.max_tokens,
-    temperature = config.temperature
+    max_tokens = config.max_tokens or 1024,
+    temperature = config.temperature or 0.3
   }
+  
+  -- 确保API密钥存在
+  if not config.openai_api_key or config.openai_api_key == "" then
+    vim.notify("Error: OpenAI API key is not set!", vim.log.levels.ERROR)
+    return
+  end
   
   local headers = {
     ["Content-Type"] = "application/json",
     ["Authorization"] = "Bearer " .. config.openai_api_key
   }
   
+  -- 使用vim.json.encode确保JSON序列化功能可用
+  local encoded_body, encode_err = json.encode(body)
+  if not encoded_body then
+    vim.notify("Error encoding request body: " .. (encode_err or "unknown error"), vim.log.levels.ERROR)
+    return
+  end
+  
+  -- 发送请求
   curl.post(url, {
-    body = json.encode(body),
+    body = encoded_body,
     headers = headers,
-    timeout = config.timeout,
+    timeout = config.timeout or 5000,
     callback = function(response)
       if not response or response.status ~= 200 then
         vim.notify("Translation failed: " .. (response and response.body or "Unknown error"), vim.log.levels.ERROR)
         return
       end
       
-      local data = json.decode(response.body)
+      -- 解析响应
+      local data, decode_err = json.decode(response.body)
+      if decode_err then
+        vim.notify("Error parsing response: " .. decode_err, vim.log.levels.ERROR)
+        return
+      end
+      
       if data and data.choices and data.choices[1] and data.choices[1].message then
         callback(data.choices[1].message.content)
       else
@@ -73,8 +94,6 @@ end
 
 -- Display translation based on config
 local function display_translation(result)
-  local config = require("neovim-ai-translate").get_config()
-  
   if config.display_mode == "float_win" then
     M.display_float_win(result)
   elseif config.display_mode == "current_line" then
@@ -89,7 +108,6 @@ end
 
 -- Display in floating window
 function M.display_float_win(content)
-  local config = require("neovim-ai-translate").get_config()
   local width = config.float_win.width or 100
   local height = config.float_win.height or 25
   
@@ -136,7 +154,6 @@ function M.translate(opts)
     return
   end
   
-  local config = require("neovim-ai-translate").get_config()
   local source_lang = opts.source_lang or config.default_source_lang
   local target_lang = opts.target_lang or config.default_target_lang
   
