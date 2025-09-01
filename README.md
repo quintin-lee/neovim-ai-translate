@@ -19,6 +19,7 @@ A Neovim plugin for translation using OpenAI API, supporting multiple display mo
 - OpenAI API key
 
 ### Using Packer
+```
 use {
   'quintin-lee/neovim-ai-translate',
   requires = { 'nvim-lua/plenary.nvim' },
@@ -29,7 +30,9 @@ use {
     })
   end
 }
+```
 ### Using Plug
+```
 Plug 'nvim-lua/plenary.nvim'
 Plug 'quintin-lee/neovim-ai-translate'
 
@@ -37,9 +40,11 @@ Plug 'quintin-lee/neovim-ai-translate'
 lua require('neovim-ai-translate').setup({
   -- Your configuration here
 })
+```
 ## Configuration
 
 Example configuration with custom parameters:
+```
 require('neovim-ai-translate').setup({
   openai_api_key = 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   openai_base_url = 'https://api.openai.com/v1',
@@ -52,6 +57,7 @@ require('neovim-ai-translate').setup({
     height = 25,
   }
 })
+```
 All available configuration options:
 
 - `openai_api_key`: Your OpenAI API key (required)
